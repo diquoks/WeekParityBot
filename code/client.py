@@ -1,5 +1,5 @@
 from __future__ import annotations
-import datetime, logging, telebot
+import logging, telebot
 import data, utils, misc
 
 
@@ -27,7 +27,7 @@ class Client(telebot.TeleBot):
         self.register_message_handler(callback=self.add_buttons, commands=["add_buttons"])
         self.register_callback_query_handler(callback=self.callback, func=lambda *args: True)
 
-        self._time_started = datetime.datetime.now(tz=datetime.timezone(offset=datetime.timedelta(hours=3)))
+        self._time_started = utils.get_corrected_current_datetime()
         self._logger.info(f"{self.bot.full_name} initialized!")
 
     @property

@@ -1,4 +1,5 @@
 /.idea/
 /.venv/
+*assets/
 *logs/
 *config.ini

@@ -15,7 +15,6 @@ class Client(telebot.TeleBot):
 
     def __init__(self) -> None:
         self._config = data.ConfigProvider()
-        self._assets = data.AssetsProvider()
         self._buttons = misc.ButtonsContainer()
         self._logger = data.LoggerService(name=__name__, level=logging.INFO)
         self._exception_handler = self.ExceptionHandler(self)
@@ -25,10 +24,10 @@ class Client(telebot.TeleBot):
         )
         self.register_message_handler(callback=self.info, commands=["start"])
         self.register_message_handler(callback=self.info, commands=["info"])
-        self.register_message_handler(callback=self.send_schedule, commands=["send_schedule"])
+        self.register_message_handler(callback=self.add_buttons, commands=["add_buttons"])
         self.register_callback_query_handler(callback=self.callback, func=lambda *args: True)
 
-        self._time_started = datetime.datetime.now()
+        self._time_started = datetime.datetime.now(tz=datetime.timezone(offset=datetime.timedelta(hours=3)))
         self._logger.info(f"{self.bot.full_name} initialized!")
 
     @property
@@ -42,19 +41,44 @@ class Client(telebot.TeleBot):
             except Exception as e:
                 self._logger.log_exception(e)
 
-    def send_schedule(self, message: telebot.types.Message) -> None:
+    def add_buttons(self, message: telebot.types.Message) -> None:
         self._logger.log_user_interaction(message.from_user, message.text)
 
-        if message.from_user.id in self._config.settings.admin_list:
-            markup = telebot.types.InlineKeyboardMarkup()
-            markup.row(self._buttons.view_parity)
-            markup.row(self._buttons.report_error)
-            self.send_photo(
-                chat_id=message.chat.id,
-                message_thread_id=message.message_thread_id,
-                photo=self._assets.images.schedule,
-                reply_markup=markup,
-            )
+        try:
+            if message.reply_to_message is None:
+                self.send_message(
+                    chat_id=message.chat.id,
+                    message_thread_id=message.message_thread_id,
+                    text="Ответьте на сообщение с фото,\nчтобы добавить ему кнопки!"
+                )
+            elif message.reply_to_message.document:
+                file_path = self.get_file(file_id=message.reply_to_message.document.file_id).file_path
+                photo = self.download_file(file_path)
+                markup = telebot.types.InlineKeyboardMarkup()
+                markup.row(self._buttons.view_parity)
+                markup.row(self._buttons.report_error)
+                self.send_photo(
+                    chat_id=message.chat.id,
+                    message_thread_id=message.message_thread_id,
+                    photo=photo,
+                    caption=message.reply_to_message.html_caption,
+                    parse_mode="html",
+                    reply_markup=markup,
+                )
+            elif message.reply_to_message.photo:
+                self.send_message(
+                    chat_id=message.chat.id,
+                    message_thread_id=message.message_thread_id,
+                    text="Отправьте фото как файл!"
+                )
+            elif message.reply_to_message:
+                self.send_message(
+                    chat_id=message.chat.id,
+                    message_thread_id=message.message_thread_id,
+                    text="Это сообщение не имеет фото!"
+                )
+        except Exception as e:
+            self._logger.log_exception(e)
 
     def info(self, message: telebot.types.Message) -> None:
         self._logger.log_user_interaction(message.from_user, message.text)

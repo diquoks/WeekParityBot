@@ -32,27 +32,20 @@ class ConfigProvider:
 
     class SettingsConfig(IConfig):
         """
-        :var admin_list: ``list[int]``
         :var report_link: ``str``
         :var token: ``str``
         """
 
         _SECTION = "Settings"
-        admin_list: list[int] | str | None
         report_link: str | None
         token: str | None
 
         def __init__(self, parent: ConfigProvider) -> None:
             super().__init__(parent=parent)
-            try:
-                self.admin_list = json.loads(self.admin_list)
-            except:
-                raise configparser.ParsingError("config.ini is filled incorrectly!")
 
     _CONFIG_VALUES = {
         "Settings":
             {
-                "admin_list",
                 "report_link",
                 "token",
             },
@@ -61,27 +54,6 @@ class ConfigProvider:
     def __init__(self) -> None:
         self.settings = self.SettingsConfig(self)
         super().__init__()
-
-
-class AssetsProvider:
-    class IDirectory:
-        _PATH: str = None
-        _NAMES: set[str] = None
-
-        def __init__(self):
-            for i in self._NAMES:
-                with open(file=self._PATH.format(i), mode="rb") as image:
-                    setattr(self, i, image.read())
-
-    class Images(IDirectory):
-        _PATH = "assets/images/{0}.png"
-        _NAMES = {
-            "schedule",
-        }
-        schedule: bytes
-
-    def __init__(self):
-        self.images = self.Images()
 
 
 class LoggerService(logging.Logger):

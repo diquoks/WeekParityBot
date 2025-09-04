@@ -1,5 +1,5 @@
 from __future__ import annotations
-import logging, telebot
+import datetime, logging, telebot
 import data, utils, misc
 
 
@@ -27,12 +27,17 @@ class Client(telebot.TeleBot):
         self.register_message_handler(callback=self.add_buttons, commands=["add_buttons"])
         self.register_callback_query_handler(callback=self.callback, func=lambda *args: True)
 
-        self._time_started = utils.get_corrected_current_datetime()
-        self._logger.info(f"{self.bot.full_name} initialized!")
+        self._time_started = datetime.datetime.now()
+        self._logger.info(f"{self.user.full_name} initialized!")
 
-    @property
-    def bot(self) -> telebot.types.User:
-        return self.get_me()
+    @staticmethod
+    def get_message_thread_id(message: telebot.types.Message) -> int | None:
+        if message.reply_to_message and message.reply_to_message.is_topic_message:
+            return message.reply_to_message.message_thread_id
+        elif message.is_topic_message:
+            return message.message_thread_id
+        else:
+            return None
 
     def polling_thread(self) -> None:
         while True:
@@ -44,49 +49,39 @@ class Client(telebot.TeleBot):
     def add_buttons(self, message: telebot.types.Message) -> None:
         self._logger.log_user_interaction(message.from_user, message.text)
 
-        try:
-            if message.reply_to_message is None:
-                self.send_message(
-                    chat_id=message.chat.id,
-                    message_thread_id=message.message_thread_id,
-                    text="Ответьте на сообщение с фото,\nчтобы добавить ему кнопки!"
-                )
-            elif message.reply_to_message.document:
-                file_path = self.get_file(file_id=message.reply_to_message.document.file_id).file_path
-                photo = self.download_file(file_path)
-                markup = telebot.types.InlineKeyboardMarkup()
-                markup.row(self._buttons.view_parity)
-                markup.row(self._buttons.report_error)
-                self.send_photo(
-                    chat_id=message.chat.id,
-                    message_thread_id=message.message_thread_id,
-                    photo=photo,
-                    caption=message.reply_to_message.html_caption,
-                    parse_mode="html",
-                    reply_markup=markup,
-                )
-            elif message.reply_to_message.photo:
-                self.send_message(
-                    chat_id=message.chat.id,
-                    message_thread_id=message.message_thread_id,
-                    text="Отправьте фото как файл!"
-                )
-            elif message.reply_to_message:
-                self.send_message(
-                    chat_id=message.chat.id,
-                    message_thread_id=message.message_thread_id,
-                    text="Это сообщение не имеет фото!"
-                )
-        except Exception as e:
-            self._logger.log_exception(e)
+        if message.reply_to_message and message.reply_to_message.document:
+            file_path = self.get_file(file_id=message.reply_to_message.document.file_id).file_path
+            photo = self.download_file(file_path)
+            markup = telebot.types.InlineKeyboardMarkup()
+            markup.row(self._buttons.view_parity)
+            markup.row(self._buttons.report_error)
+            self.send_photo(
+                chat_id=message.chat.id,
+                message_thread_id=self.get_message_thread_id(message),
+                photo=photo,
+                caption=message.reply_to_message.html_caption,
+                reply_markup=markup,
+            )
+        elif message.reply_to_message and message.reply_to_message.photo:
+            self.send_message(
+                chat_id=message.chat.id,
+                message_thread_id=self.get_message_thread_id(message),
+                text="Фото должно быть\nотправлено без сжатия!",
+            )
+        else:
+            self.send_message(
+                chat_id=message.chat.id,
+                message_thread_id=self.get_message_thread_id(message),
+                text="Ответьте на сообщение с фото,\nчтобы добавить ему кнопки!",
+            )
 
     def info(self, message: telebot.types.Message) -> None:
         self._logger.log_user_interaction(message.from_user, message.text)
 
         self.send_message(
             chat_id=message.chat.id,
-            message_thread_id=message.message_thread_id,
-            text=f"Информация о {self.bot.full_name}:\n\nЗапущен: {self._time_started.strftime("%d.%m.%y %H:%M:%S")}\n\nИсходный код на GitHub:\nhttps://github.com/diquoks/WeekParityBot",
+            message_thread_id=self.get_message_thread_id(message),
+            text=f"Информация о {self.user.full_name}:\n\nЗапущен: {self._time_started.strftime("%d.%m.%y %H:%M:%S")} UTC\n\nИсходный код на GitHub:\nhttps://github.com/diquoks/WeekParityBot",
         )
 
     def callback(self, call: telebot.types.CallbackQuery) -> None:

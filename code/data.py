@@ -1,5 +1,5 @@
 from __future__ import annotations
-import configparser, datetime, logging, telebot, json, sys, os
+import configparser, datetime, logging, telebot, sys, os
 
 
 class ConfigProvider:

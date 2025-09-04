@@ -60,6 +60,7 @@ class Client(telebot.TeleBot):
                 message_thread_id=self.get_message_thread_id(message),
                 photo=photo,
                 caption=message.reply_to_message.html_caption,
+                parse_mode="html",
                 reply_markup=markup,
             )
         elif message.reply_to_message and message.reply_to_message.photo:

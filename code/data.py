@@ -1,5 +1,5 @@
 from __future__ import annotations
-import configparser, datetime, logging, telebot, sys, os
+import configparser, datetime, logging, aiogram, sys, os
 
 
 class ConfigProvider:
@@ -68,7 +68,7 @@ class LoggerService(logging.Logger):
             file_handler.setFormatter(logging.Formatter(fmt="$levelname $asctime - $message", datefmt="%d-%m-%y %H:%M:%S", style="$"))
             self.handlers.append(file_handler)
 
-    def log_user_interaction(self, user: telebot.types.User, interaction: str) -> None:
+    def log_user_interaction(self, user: aiogram.types.User, interaction: str) -> None:
         user_info = f"@{user.username} ({user.id})" if user.username else user.id
         self.info(f"{user_info} - \"{interaction}\"")
 

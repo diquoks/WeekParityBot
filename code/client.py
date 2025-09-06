@@ -1,37 +1,40 @@
 from __future__ import annotations
-import datetime, logging, telebot
+import datetime, logging, aiogram, aiogram.filters, aiogram.client.default
 import data, utils, misc
 
 
-class Client(telebot.TeleBot):
-    class ExceptionHandler(telebot.ExceptionHandler):
-        def __init__(self, parent: Client) -> None:
-            self._logger = parent._logger
-            super().__init__()
-
-        def handle(self, e) -> bool:
-            self._logger.log_exception(e)
-            return True
-
-    def __init__(self) -> None:
+class AiogramClient(aiogram.Dispatcher):
+    def __init__(self):
         self._config = data.ConfigProvider()
         self._buttons = misc.ButtonsContainer()
-        self._logger = data.LoggerService(name=__name__, level=logging.INFO)
-        self._exception_handler = self.ExceptionHandler(self)
-        super().__init__(
-            token=self._config.settings.token,
-            exception_handler=self._exception_handler,
+        self._logger = data.LoggerService(
+            name=__name__,
+            level=logging.INFO,
         )
-        self.register_message_handler(callback=self.info, commands=["start"])
-        self.register_message_handler(callback=self.info, commands=["info"])
-        self.register_message_handler(callback=self.add_buttons, commands=["add_buttons"])
-        self.register_callback_query_handler(callback=self.callback, func=lambda *args: True)
+        self._bot = aiogram.Bot(
+            self._config.settings.token,
+            default=aiogram.client.default.DefaultBotProperties(
+                parse_mode=aiogram.enums.ParseMode.HTML,
+            ),
+        )
+        self._bot_name = None
+        super().__init__(name="WeekParityDispatcher")
+        self.errors.register(self.handle_error)
+        self.message.register(self.info, aiogram.filters.Command("start", "info"))
+        self.message.register(self.add_buttons, aiogram.filters.Command("add_buttons"))
+        self.callback_query.register(self.callback)
 
-        self._time_started = datetime.datetime.now()
-        self._logger.info(f"{self.user.full_name} initialized!")
+        self._time_started = datetime.datetime.now(tz=datetime.timezone.utc)
+        self._logger.info(f"{self.name} initialized!")
+
+    @property
+    async def bot_name(self):
+        if not self._bot_name:
+            self._bot_name = (await self._bot.get_my_name()).name
+        return self._bot_name
 
     @staticmethod
-    def get_message_thread_id(message: telebot.types.Message) -> int | None:
+    def get_message_thread_id(message: aiogram.types.Message) -> int | None:
         if message.reply_to_message and message.reply_to_message.is_topic_message:
             return message.reply_to_message.message_thread_id
         elif message.is_topic_message:
@@ -39,58 +42,54 @@ class Client(telebot.TeleBot):
         else:
             return None
 
-    def polling_thread(self) -> None:
-        while True:
-            try:
-                self.polling(non_stop=True)
-            except Exception as e:
-                self._logger.log_exception(e)
+    async def handle_error(self, event: aiogram.types.ErrorEvent) -> None:
+        self._logger.log_exception(event.exception)
 
-    def add_buttons(self, message: telebot.types.Message) -> None:
+    async def polling_coroutine(self) -> None:
+        try:
+            await self.start_polling(self._bot)
+        except Exception as e:
+            self._logger.log_exception(e)
+
+    async def add_buttons(self, message: aiogram.types.Message) -> None:
         self._logger.log_user_interaction(message.from_user, message.text)
 
-        if message.reply_to_message and message.reply_to_message.document:
-            file_path = self.get_file(file_id=message.reply_to_message.document.file_id).file_path
-            photo = self.download_file(file_path)
-            markup = telebot.types.InlineKeyboardMarkup()
-            markup.row(self._buttons.view_parity)
-            markup.row(self._buttons.report_error)
-            self.send_photo(
+        if message.reply_to_message and message.reply_to_message.photo:
+            markup = aiogram.types.InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [self._buttons.view_parity],
+                    [self._buttons.report_error],
+                ],
+            )
+            await self._bot.send_photo(
                 chat_id=message.chat.id,
                 message_thread_id=self.get_message_thread_id(message),
-                photo=photo,
-                caption=message.reply_to_message.html_caption,
-                parse_mode="html",
+                photo=message.reply_to_message.photo[0].file_id,
+                caption=message.reply_to_message.html_text,
                 reply_markup=markup,
             )
-        elif message.reply_to_message and message.reply_to_message.photo:
-            self.send_message(
-                chat_id=message.chat.id,
-                message_thread_id=self.get_message_thread_id(message),
-                text="Фото должно быть\nотправлено без сжатия!",
-            )
         else:
-            self.send_message(
+            await self._bot.send_message(
                 chat_id=message.chat.id,
                 message_thread_id=self.get_message_thread_id(message),
                 text="Ответьте на сообщение с фото,\nчтобы добавить ему кнопки!",
             )
 
-    def info(self, message: telebot.types.Message) -> None:
+    async def info(self, message: aiogram.types.Message) -> None:
         self._logger.log_user_interaction(message.from_user, message.text)
 
-        self.send_message(
+        await self._bot.send_message(
             chat_id=message.chat.id,
             message_thread_id=self.get_message_thread_id(message),
-            text=f"Информация о {self.user.full_name}:\n\nЗапущен: {self._time_started.strftime("%d.%m.%y %H:%M:%S")} UTC\n\nИсходный код на GitHub:\nhttps://github.com/diquoks/WeekParityBot",
+            text=f"Информация о {await self.bot_name}:\n\nЗапущен: {self._time_started.strftime("%d.%m.%y %H:%M:%S")} UTC\n\nИсходный код на GitHub:\nhttps://github.com/diquoks/WeekParityBot"
         )
 
-    def callback(self, call: telebot.types.CallbackQuery) -> None:
+    async def callback(self, call: aiogram.types.CallbackQuery) -> None:
         self._logger.log_user_interaction(call.from_user, call.data)
 
         try:
             if call.data == "view_parity":
-                self.answer_callback_query(
+                await self._bot.answer_callback_query(
                     callback_query_id=call.id,
                     text=utils.get_week_parity(),
                     show_alert=True,
@@ -98,4 +97,4 @@ class Client(telebot.TeleBot):
         except Exception as e:
             self._logger.log_exception(e)
         finally:
-            self.answer_callback_query(callback_query_id=call.id)
+            await self._bot.answer_callback_query(callback_query_id=call.id)

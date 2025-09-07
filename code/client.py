@@ -1,5 +1,6 @@
 from __future__ import annotations
-import datetime, logging, aiogram, aiogram.filters, aiogram.client.default, aiogram.client.session.aiohttp
+import datetime, logging
+import aiogram, aiogram.filters, aiogram.client.default, aiogram.client.session.aiohttp
 import data, utils, misc
 
 

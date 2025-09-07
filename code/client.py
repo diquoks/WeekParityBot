@@ -1,5 +1,5 @@
 from __future__ import annotations
-import datetime, logging, aiogram, aiogram.filters, aiogram.client.default
+import datetime, logging, aiogram, aiogram.filters, aiogram.client.default, aiogram.client.session.aiohttp
 import data, utils, misc
 
 
@@ -11,8 +11,13 @@ class AiogramClient(aiogram.Dispatcher):
             name=__name__,
             level=logging.INFO,
         )
+        if self._config.settings.use_pythonanywhere_proxy:
+            session = aiogram.client.session.aiohttp.AiohttpSession(proxy="http://proxy.server:3128")
+        else:
+            session = None
         self._bot = aiogram.Bot(
-            self._config.settings.token,
+            token=self._config.settings.bot_token,
+            session=session,
             default=aiogram.client.default.DefaultBotProperties(
                 parse_mode=aiogram.enums.ParseMode.HTML,
             ),

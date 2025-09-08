@@ -12,6 +12,7 @@ class AiogramClient(aiogram.Dispatcher):
             name=__name__,
             level=logging.INFO,
         )
+        self._user = None
         if self._config.settings.use_pythonanywhere_proxy:
             session = aiogram.client.session.aiohttp.AiohttpSession(proxy="http://proxy.server:3128")
         else:
@@ -23,8 +24,8 @@ class AiogramClient(aiogram.Dispatcher):
                 parse_mode=aiogram.enums.ParseMode.HTML,
             ),
         )
-        self._bot_name = None
         super().__init__(name="WeekParityDispatcher")
+
         self.errors.register(self.handle_error)
         self.message.register(self.info, aiogram.filters.Command("start", "info"))
         self.message.register(self.add_buttons, aiogram.filters.Command("add_buttons"))
@@ -34,10 +35,10 @@ class AiogramClient(aiogram.Dispatcher):
         self._logger.info(f"{self.name} initialized!")
 
     @property
-    async def bot_name(self):
-        if not self._bot_name:
-            self._bot_name = (await self._bot.get_my_name()).name
-        return self._bot_name
+    async def user(self) -> aiogram.types.User:
+        if not self._user:
+            self._user = (await self._bot.get_me())
+        return self._user
 
     @staticmethod
     def get_message_thread_id(message: aiogram.types.Message) -> int | None:
@@ -87,7 +88,7 @@ class AiogramClient(aiogram.Dispatcher):
         await self._bot.send_message(
             chat_id=message.chat.id,
             message_thread_id=self.get_message_thread_id(message),
-            text=f"Информация о {await self.bot_name}:\n\nЗапущен: {self._time_started.strftime("%d.%m.%y %H:%M:%S")} UTC\n\nИсходный код на GitHub:\nhttps://github.com/diquoks/WeekParityBot"
+            text=f"Информация о {(await self.user).full_name}:\n\nЗапущен: {self._time_started.strftime("%d.%m.%y %H:%M:%S")} UTC\n\nИсходный код на GitHub:\nhttps://github.com/diquoks/WeekParityBot"
         )
 
     async def callback(self, call: aiogram.types.CallbackQuery) -> None:

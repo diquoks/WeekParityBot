@@ -29,6 +29,8 @@
 - [Бот в Telegram](https://t.me/week_parity_bot)
 - [Telegram-канал с новостями](https://t.me/diquoks_channel)
 
+---
+
 ## Сборка и запуск
 
 ### Необходимые компоненты

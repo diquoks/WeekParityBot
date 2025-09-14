@@ -77,7 +77,6 @@ class ConfigProvider:
 
     def __init__(self) -> None:
         self.settings = self.SettingsConfig(self)
-        super().__init__()
 
 
 class LoggerService(logging.Logger):

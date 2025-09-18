@@ -4,17 +4,14 @@ import aiogram
 import utils
 
 
-class ConfigProvider:
-    """
-    :var settings: ``SettingsConfig``
-    """
-
+# Abstract classes
+class IConfigProvider:
     class IConfig:
-        _SECTION: str = None
+        _SECTION: str
         _CONFIG_VALUES: dict = None
 
-        def __init__(self, parent: ConfigProvider = None) -> None:
-            if isinstance(parent, ConfigProvider):
+        def __init__(self, parent: IConfigProvider = None) -> None:
+            if isinstance(parent, IConfigProvider):
                 self._CONFIG_VALUES = parent._CONFIG_VALUES[self._SECTION]
                 self._incorrect_content_exception = configparser.ParsingError("config.ini is filled incorrectly!")
                 self._config = configparser.ConfigParser()
@@ -53,33 +50,15 @@ class ConfigProvider:
             except:
                 return None
 
-    class SettingsConfig(IConfig):
-        """
-        :var bot_token: ``str``
-        :var report_link: ``str``
-        :var use_pythonanywhere_proxy: ``bool``
-        """
-
-        _SECTION = "Settings"
-        bot_token: str | None
-        report_link: str | None
-        use_pythonanywhere_proxy: bool | str | None
-
-    _CONFIG_VALUES = {
-        "Settings":
-            {
-                "bot_token": str,
-                "report_link": str,
-                "use_pythonanywhere_proxy": bool,
-            },
-    }
-    settings: SettingsConfig
+    _CONFIG_VALUES: dict[str, dict[str, type]]
+    _CONFIG_OBJECTS: dict[str, type]
 
     def __init__(self) -> None:
-        self.settings = self.SettingsConfig(self)
+        for k, v in self._CONFIG_OBJECTS.items():
+            setattr(self, k, v(self))
 
 
-class LoggerService(logging.Logger):
+class ILoggerService(logging.Logger):
     def __init__(self, name: str, file_handling: bool = True, filename: str = datetime.datetime.now().strftime("%d-%m-%y-%H-%M-%S"), level: int = logging.NOTSET, folder_name: str = "logs") -> None:
         super().__init__(name, level)
         stream_handler = logging.StreamHandler(sys.stdout)
@@ -91,9 +70,35 @@ class LoggerService(logging.Logger):
             file_handler.setFormatter(logging.Formatter(fmt="$levelname $asctime - $message", datefmt="%d-%m-%y %H:%M:%S", style="$"))
             self.addHandler(file_handler)
 
+    def log_exception(self, e: Exception) -> None:
+        self.error(msg=e, exc_info=True)
+
+
+# Named classes
+class ConfigProvider(IConfigProvider):
+    class SettingsConfig(IConfigProvider.IConfig):
+        _SECTION = "Settings"
+        bot_token: str
+        file_logging: bool
+        report_link: str
+        use_pythonanywhere_proxy: bool
+
+    _CONFIG_VALUES = {
+        "Settings":
+            {
+                "bot_token": str,
+                "file_logging": bool,
+                "report_link": str,
+                "use_pythonanywhere_proxy": bool,
+            },
+    }
+    _CONFIG_OBJECTS = {
+        "settings": SettingsConfig,
+    }
+    settings: SettingsConfig
+
+
+class LoggerService(ILoggerService):
     def log_user_interaction(self, user: aiogram.types.User, interaction: str) -> None:
         user_info = f"@{user.username} ({user.id})" if user.username else user.id
         self.info(f"{user_info} - \"{interaction}\"")
-
-    def log_exception(self, e: Exception) -> None:
-        self.error(msg=e, exc_info=True)

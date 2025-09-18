@@ -10,6 +10,7 @@ class AiogramClient(aiogram.Dispatcher):
         self._buttons = misc.ButtonsContainer()
         self._logger = data.LoggerService(
             name=__name__,
+            file_handling=self._config.settings.file_logging,
             level=logging.INFO,
         )
         self._user = None
@@ -34,6 +35,7 @@ class AiogramClient(aiogram.Dispatcher):
         self._time_started = datetime.datetime.now(tz=datetime.timezone.utc)
         self._logger.info(f"{self.name} initialized!")
 
+    # Properties and helpers
     @property
     async def user(self) -> aiogram.types.User:
         if not self._user:
@@ -41,7 +43,7 @@ class AiogramClient(aiogram.Dispatcher):
         return self._user
 
     @staticmethod
-    def get_message_thread_id(message: aiogram.types.Message) -> int | None:
+    def _get_message_thread_id(message: aiogram.types.Message) -> int | None:
         if message.reply_to_message and message.reply_to_message.is_topic_message:
             return message.reply_to_message.message_thread_id
         elif message.is_topic_message:
@@ -58,6 +60,16 @@ class AiogramClient(aiogram.Dispatcher):
         except Exception as e:
             self._logger.log_exception(e)
 
+    # Handlers
+    async def info(self, message: aiogram.types.Message) -> None:
+        self._logger.log_user_interaction(message.from_user, message.text)
+
+        await self._bot.send_message(
+            chat_id=message.chat.id,
+            message_thread_id=self._get_message_thread_id(message),
+            text=f"Информация о {(await self.user).full_name}:\n\nЗапущен: {self._time_started.strftime("%d.%m.%y %H:%M:%S")} UTC\n\nИсходный код на GitHub:\nhttps://github.com/diquoks/WeekParityBot"
+        )
+
     async def add_buttons(self, message: aiogram.types.Message) -> None:
         self._logger.log_user_interaction(message.from_user, message.text)
 
@@ -70,7 +82,7 @@ class AiogramClient(aiogram.Dispatcher):
             )
             await self._bot.send_photo(
                 chat_id=message.chat.id,
-                message_thread_id=self.get_message_thread_id(message),
+                message_thread_id=self._get_message_thread_id(message),
                 photo=message.reply_to_message.photo[0].file_id,
                 caption=message.reply_to_message.html_text,
                 reply_markup=markup,
@@ -78,18 +90,9 @@ class AiogramClient(aiogram.Dispatcher):
         else:
             await self._bot.send_message(
                 chat_id=message.chat.id,
-                message_thread_id=self.get_message_thread_id(message),
+                message_thread_id=self._get_message_thread_id(message),
                 text="Ответьте на сообщение с фото,\nчтобы добавить ему кнопки!",
             )
-
-    async def info(self, message: aiogram.types.Message) -> None:
-        self._logger.log_user_interaction(message.from_user, message.text)
-
-        await self._bot.send_message(
-            chat_id=message.chat.id,
-            message_thread_id=self.get_message_thread_id(message),
-            text=f"Информация о {(await self.user).full_name}:\n\nЗапущен: {self._time_started.strftime("%d.%m.%y %H:%M:%S")} UTC\n\nИсходный код на GitHub:\nhttps://github.com/diquoks/WeekParityBot"
-        )
 
     async def callback(self, call: aiogram.types.CallbackQuery) -> None:
         self._logger.log_user_interaction(call.from_user, call.data)

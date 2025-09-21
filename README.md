@@ -13,7 +13,6 @@
     - [Необходимые компоненты](#необходимые-компоненты)
     - [Первоначальная настройка](#первоначальная-настройка)
     - [Docker](#docker)
-    - [pythonanywhere](#pythonanywhere)
 
 ---
 
@@ -47,10 +46,22 @@
 git clone https://github.com/diquoks/WeekParityBot.git
 ```
 
+##### Перейдите в корневую директорию
+
+```bash
+cd WeekParityBot
+```
+
+##### Установите зависимости
+
+```bash
+pip install -r requirements.txt
+```
+
 ##### Перейдите в директорию `code`
 
 ```bash
-cd WeekParityBot/code
+cd code
 ```
 
 ##### Сгенерируйте файл `config.ini`
@@ -59,7 +70,7 @@ cd WeekParityBot/code
 python main.py
 ```
 
-##### Заполните `WeekParityBot/code/config.ini` и следуйте инструкциям для [Docker](#docker) или [pythonanywhere](#pythonanywhere)
+##### Заполните `WeekParityBot/code/config.ini` и следуйте инструкциям для [Docker](#docker)
 
 ### Docker
 
@@ -79,12 +90,4 @@ docker build -t week_parity_bot .
 
 ```bash
 docker run -it -d --name WeekParityBot week_parity_bot
-```
-
-### pythonanywhere
-
-##### Запустите код
-
-```bash
-python main.py
 ```

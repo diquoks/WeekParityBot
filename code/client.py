@@ -1,6 +1,6 @@
 from __future__ import annotations
 import datetime, logging
-import aiogram, aiogram.filters, aiogram.client.default, aiogram.client.session.aiohttp
+import aiogram, aiogram.filters, aiogram.client.default
 import data, utils, misc
 
 
@@ -14,13 +14,8 @@ class AiogramClient(aiogram.Dispatcher):
             level=logging.INFO,
         )
         self._user = None
-        if self._config.settings.use_pythonanywhere_proxy:
-            session = aiogram.client.session.aiohttp.AiohttpSession(proxy="http://proxy.server:3128")
-        else:
-            session = None
         self._bot = aiogram.Bot(
             token=self._config.settings.bot_token,
-            session=session,
             default=aiogram.client.default.DefaultBotProperties(
                 parse_mode=aiogram.enums.ParseMode.HTML,
             ),
@@ -51,16 +46,17 @@ class AiogramClient(aiogram.Dispatcher):
         else:
             return None
 
-    async def handle_error(self, event: aiogram.types.ErrorEvent) -> None:
-        self._logger.log_exception(event.exception)
-
     async def polling_coroutine(self) -> None:
         try:
+            await self._bot.delete_webhook(drop_pending_updates=self._config.settings.skip_updates)
             await self.start_polling(self._bot)
         except Exception as e:
             self._logger.log_exception(e)
 
     # Handlers
+    async def handle_error(self, event: aiogram.types.ErrorEvent) -> None:
+        self._logger.log_exception(event.exception)
+
     async def info(self, message: aiogram.types.Message) -> None:
         self._logger.log_user_interaction(message.from_user, message.text)
 

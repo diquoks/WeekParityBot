@@ -58,10 +58,10 @@ cd WeekParityBot
 pip install -r requirements.txt
 ```
 
-##### Перейдите в директорию `code`
+##### Перейдите в директорию `src`
 
 ```bash
-cd code
+cd src
 ```
 
 ##### Сгенерируйте файл `config.ini`
@@ -70,7 +70,7 @@ cd code
 python main.py
 ```
 
-##### Заполните `WeekParityBot/code/config.ini` и следуйте инструкциям для [Docker](#docker)
+##### Заполните `WeekParityBot/src/config.ini` и следуйте инструкциям для [Docker](#docker)
 
 ### Docker
 

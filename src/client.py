@@ -5,6 +5,11 @@ import data, utils, misc
 
 
 class AiogramClient(aiogram.Dispatcher):
+    _COMMANDS = [
+        aiogram.types.BotCommand(command="add_buttons", description="Добавить кнопки к расписанию"),
+        aiogram.types.BotCommand(command="info", description="Информация о боте"),
+    ]
+
     def __init__(self):
         self._config = data.ConfigProvider()
         self._buttons = misc.ButtonsContainer()
@@ -22,10 +27,10 @@ class AiogramClient(aiogram.Dispatcher):
         )
         super().__init__(name="WeekParityDispatcher")
 
-        self.errors.register(self.handle_error)
-        self.message.register(self.info, aiogram.filters.Command("start", "info"))
-        self.message.register(self.add_buttons, aiogram.filters.Command("add_buttons"))
-        self.callback_query.register(self.callback)
+        self.errors.register(self.error_handler)
+        self.message.register(self.info_handler, aiogram.filters.Command("start", "info"))
+        self.message.register(self.add_buttons_handler, aiogram.filters.Command("add_buttons"))
+        self.callback_query.register(self.callback_handler)
 
         self._time_started = datetime.datetime.now(tz=datetime.timezone.utc)
         self._logger.info(f"{self.name} initialized!")
@@ -54,11 +59,18 @@ class AiogramClient(aiogram.Dispatcher):
             self._logger.log_exception(e)
 
     # Handlers
-    async def handle_error(self, event: aiogram.types.ErrorEvent) -> None:
+    async def error_handler(self, event: aiogram.types.ErrorEvent) -> None:
         self._logger.log_exception(event.exception)
 
-    async def info(self, message: aiogram.types.Message) -> None:
-        self._logger.log_user_interaction(message.from_user, message.text)
+    async def startup_handler(self) -> None:
+        await self._bot.set_my_commands(
+            commands=self._COMMANDS,
+            scope=aiogram.types.BotCommandScopeDefault(),
+            language_code="ru",
+        )
+
+    async def info_handler(self, message: aiogram.types.Message, command: aiogram.filters.CommandObject) -> None:
+        self._logger.log_user_interaction(message.from_user, command.text)
 
         await self._bot.send_message(
             chat_id=message.chat.id,
@@ -66,8 +78,8 @@ class AiogramClient(aiogram.Dispatcher):
             text=f"Информация о {(await self.user).full_name}:\n\nЗапущен: {self._time_started.strftime("%d.%m.%y %H:%M:%S")} UTC\n\nИсходный код на GitHub:\nhttps://github.com/diquoks/WeekParityBot"
         )
 
-    async def add_buttons(self, message: aiogram.types.Message) -> None:
-        self._logger.log_user_interaction(message.from_user, message.text)
+    async def add_buttons_handler(self, message: aiogram.types.Message, command: aiogram.filters.CommandObject) -> None:
+        self._logger.log_user_interaction(message.from_user, command.text)
 
         if message.reply_to_message and message.reply_to_message.photo:
             markup = aiogram.types.InlineKeyboardMarkup(
@@ -90,7 +102,7 @@ class AiogramClient(aiogram.Dispatcher):
                 text="Ответьте на сообщение с фото,\nчтобы добавить ему кнопки!",
             )
 
-    async def callback(self, call: aiogram.types.CallbackQuery) -> None:
+    async def callback_handler(self, call: aiogram.types.CallbackQuery) -> None:
         self._logger.log_user_interaction(call.from_user, call.data)
 
         try:

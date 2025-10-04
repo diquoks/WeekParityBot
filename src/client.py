@@ -10,14 +10,14 @@ class AiogramClient(aiogram.Dispatcher):
         aiogram.types.BotCommand(command="info", description="Информация о боте"),
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._config = data.ConfigProvider()
-        self._buttons = misc.ButtonsContainer()
         self._logger = data.LoggerService(
             name=__name__,
             file_handling=self._config.settings.file_logging,
             level=logging.INFO,
         )
+        self._buttons = misc.ButtonsContainer()
         self._user = None
         self._bot = aiogram.Bot(
             token=self._config.settings.bot_token,

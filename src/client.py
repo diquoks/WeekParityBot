@@ -75,7 +75,7 @@ class AiogramClient(aiogram.Dispatcher):
         await self._bot.send_message(
             chat_id=message.chat.id,
             message_thread_id=self._get_message_thread_id(message),
-            text=f"Информация о {(await self.user).full_name}:\n\nЗапущен: {self._time_started.strftime("%d.%m.%y %H:%M:%S")} UTC\n\nИсходный код на GitHub:\nhttps://github.com/diquoks/WeekParityBot"
+            text=f"Информация о {(await self.user).full_name}:\n\nЗапущен: {self._time_started.strftime('%d.%m.%y %H:%M:%S')} UTC\n\nИсходный код на GitHub:\nhttps://github.com/diquoks/WeekParityBot"
         )
 
     async def add_buttons_handler(self, message: aiogram.types.Message, command: aiogram.filters.CommandObject) -> None:

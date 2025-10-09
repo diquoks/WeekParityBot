@@ -1,6 +1,6 @@
 from __future__ import annotations
 import datetime, logging
-import aiogram, aiogram.filters, aiogram.client.default
+import aiogram, aiogram.exceptions, aiogram.filters, aiogram.client.default, aiogram.utils.keyboard
 import data, utils, misc
 
 
@@ -28,6 +28,8 @@ class AiogramClient(aiogram.Dispatcher):
         super().__init__(name="WeekParityDispatcher")
 
         self.errors.register(self.error_handler)
+        self.startup.register(self.startup_handler)
+        self.shutdown.register(self.shutdown_handler)
         self.message.register(self.info_handler, aiogram.filters.Command("start", "info"))
         self.message.register(self.add_buttons_handler, aiogram.filters.Command("add_buttons"))
         self.callback_query.register(self.callback_handler)
@@ -35,7 +37,8 @@ class AiogramClient(aiogram.Dispatcher):
         self._time_started = datetime.datetime.now(tz=datetime.timezone.utc)
         self._logger.info(f"{self.name} initialized!")
 
-    # Properties and helpers
+    # region Properties and helpers
+
     @property
     async def user(self) -> aiogram.types.User:
         if not self._user:
@@ -58,7 +61,10 @@ class AiogramClient(aiogram.Dispatcher):
         except Exception as e:
             self._logger.log_exception(e)
 
-    # Handlers
+    # endregion
+
+    # region Handlers
+
     async def error_handler(self, event: aiogram.types.ErrorEvent) -> None:
         self._logger.log_exception(event.exception)
 
@@ -68,6 +74,11 @@ class AiogramClient(aiogram.Dispatcher):
             scope=aiogram.types.BotCommandScopeDefault(),
             language_code="ru",
         )
+
+        self._logger.info(f"{self.name} started!")
+
+    async def shutdown_handler(self) -> None:
+        self._logger.info(f"{self.name} terminated")
 
     async def info_handler(self, message: aiogram.types.Message, command: aiogram.filters.CommandObject) -> None:
         self._logger.log_user_interaction(message.from_user, command.text)
@@ -82,18 +93,16 @@ class AiogramClient(aiogram.Dispatcher):
         self._logger.log_user_interaction(message.from_user, command.text)
 
         if message.reply_to_message and message.reply_to_message.photo:
-            markup = aiogram.types.InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [self._buttons.view_parity],
-                    [self._buttons.report_error],
-                ],
-            )
+            markup = aiogram.utils.keyboard.InlineKeyboardBuilder()
+            markup.row(self._buttons.view_parity)
+            markup.row(self._buttons.report_error)
+
             await self._bot.send_photo(
                 chat_id=message.chat.id,
                 message_thread_id=self._get_message_thread_id(message),
                 photo=message.reply_to_message.photo[0].file_id,
                 caption=message.reply_to_message.html_text,
-                reply_markup=markup,
+                reply_markup=markup.as_markup(),
             )
         else:
             await self._bot.send_message(
@@ -112,7 +121,16 @@ class AiogramClient(aiogram.Dispatcher):
                     text=utils.get_week_parity(),
                     show_alert=True,
                 )
+            else:
+                await self._bot.answer_callback_query(
+                    callback_query_id=call.id,
+                    text="Эта кнопка недоступна!",
+                    show_alert=True,
+                )
         except Exception as e:
-            self._logger.log_exception(e)
+            if e is not aiogram.exceptions.TelegramBadRequest:
+                self._logger.log_exception(e)
         finally:
             await self._bot.answer_callback_query(callback_query_id=call.id)
+
+    # endregion

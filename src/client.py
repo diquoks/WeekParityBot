@@ -115,18 +115,21 @@ class AiogramClient(aiogram.Dispatcher):
         self._logger.log_user_interaction(call.from_user, call.data)
 
         try:
-            if call.data == "view_parity":
-                await self._bot.answer_callback_query(
-                    callback_query_id=call.id,
-                    text=utils.get_week_parity(),
-                    show_alert=True,
-                )
-            else:
-                await self._bot.answer_callback_query(
-                    callback_query_id=call.id,
-                    text="Эта кнопка недоступна!",
-                    show_alert=True,
-                )
+            match call.data:
+                case "view_parity":
+                    await self._bot.answer_callback_query(
+                        callback_query_id=call.id,
+                        text=utils.get_week_parity(
+                            date=datetime.datetime.now()
+                        ),
+                        show_alert=True,
+                    )
+                case _:
+                    await self._bot.answer_callback_query(
+                        callback_query_id=call.id,
+                        text="Эта кнопка недоступна!",
+                        show_alert=True,
+                    )
         except Exception as e:
             if e is not aiogram.exceptions.TelegramBadRequest:
                 self._logger.log_exception(e)

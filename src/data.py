@@ -3,7 +3,7 @@ import aiogram
 import pyquoks.data
 
 
-# region Named classes
+# region Providers
 
 class ConfigProvider(pyquoks.data.IConfigProvider):
     class SettingsConfig(pyquoks.data.IConfigProvider.IConfig):
@@ -27,6 +27,10 @@ class ConfigProvider(pyquoks.data.IConfigProvider):
     }
     settings: SettingsConfig
 
+
+# endregion
+
+# region Services
 
 class LoggerService(pyquoks.data.LoggerService):
     def log_user_interaction(self, user: aiogram.types.User, interaction: str) -> None:

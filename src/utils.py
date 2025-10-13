@@ -2,7 +2,7 @@ from __future__ import annotations
 import datetime
 
 
-def get_week_parity(date: datetime.datetime = datetime.datetime.now()) -> str:
+def get_week_parity(date: datetime.datetime) -> str:
     first_week = datetime.datetime(
         year=date.year - 1 if date.isocalendar().week < datetime.datetime(
             year=date.year - 1,

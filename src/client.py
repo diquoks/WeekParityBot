@@ -83,32 +83,46 @@ class AiogramClient(aiogram.Dispatcher):
     async def info_handler(self, message: aiogram.types.Message, command: aiogram.filters.CommandObject) -> None:
         self._logger.log_user_interaction(message.from_user, command.text)
 
+        markup_builder = aiogram.utils.keyboard.InlineKeyboardBuilder()
+        markup_builder.row(self._buttons.export_logs)
+
         await self._bot.send_message(
             chat_id=message.chat.id,
             message_thread_id=self._get_message_thread_id(message),
-            text=f"Информация о {(await self.user).full_name}:\n\nЗапущен: {self._time_started.strftime("%d.%m.%y %H:%M:%S")} UTC\n\nИсходный код на GitHub:\nhttps://github.com/diquoks/WeekParityBot"
+            text=(
+                f"Информация о {(await self.user).full_name}:\n"
+                f"\n"
+                f"Запущен: {self._time_started.strftime("%d.%m.%y %H:%M:%S")} UTC\n"
+                f"\n"
+                f"Исходный код на GitHub:\n"
+                f"https://github.com/diquoks/WeekParityBot\n"
+            ),
+            reply_markup=markup_builder.as_markup(),
         )
 
     async def add_buttons_handler(self, message: aiogram.types.Message, command: aiogram.filters.CommandObject) -> None:
         self._logger.log_user_interaction(message.from_user, command.text)
 
         if message.reply_to_message and message.reply_to_message.photo:
-            markup = aiogram.utils.keyboard.InlineKeyboardBuilder()
-            markup.row(self._buttons.view_parity)
-            markup.row(self._buttons.report_error)
+            markup_builder = aiogram.utils.keyboard.InlineKeyboardBuilder()
+            markup_builder.row(self._buttons.view_parity)
+            markup_builder.row(self._buttons.report_error)
 
             await self._bot.send_photo(
                 chat_id=message.chat.id,
                 message_thread_id=self._get_message_thread_id(message),
                 photo=message.reply_to_message.photo[0].file_id,
                 caption=message.reply_to_message.html_text,
-                reply_markup=markup.as_markup(),
+                reply_markup=markup_builder.as_markup(),
             )
         else:
             await self._bot.send_message(
                 chat_id=message.chat.id,
                 message_thread_id=self._get_message_thread_id(message),
-                text="Ответьте на сообщение с фото,\nчтобы добавить ему кнопки!",
+                text=(
+                    "Ответьте на сообщение с фото,\n"
+                    "чтобы добавить ему кнопки!\n"
+                ),
             )
 
     async def callback_handler(self, call: aiogram.types.CallbackQuery) -> None:
@@ -120,10 +134,30 @@ class AiogramClient(aiogram.Dispatcher):
                     await self._bot.answer_callback_query(
                         callback_query_id=call.id,
                         text=utils.get_week_parity(
-                            date=datetime.datetime.now()
+                            date=datetime.datetime.now(),
                         ),
                         show_alert=True,
                     )
+                case "export_logs":
+                    if self._config.settings.file_logging:
+                        logs_file = self._logger.get_logs_file()
+
+                        await self._bot.send_document(
+                            chat_id=call.message.chat.id,
+                            message_thread_id=self._get_message_thread_id(message=call.message),
+                            document=aiogram.types.BufferedInputFile(
+                                file=logs_file.read(),
+                                filename=logs_file.name,
+                            ),
+                        )
+
+                        logs_file.close()
+                    else:
+                        await self._bot.answer_callback_query(
+                            callback_query_id=call.id,
+                            text="Логирование отключено!",
+                            show_alert=True,
+                        )
                 case _:
                     await self._bot.answer_callback_query(
                         callback_query_id=call.id,

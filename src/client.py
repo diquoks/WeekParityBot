@@ -6,8 +6,8 @@ import data, utils, misc
 
 class AiogramClient(aiogram.Dispatcher):
     _COMMANDS = [
-        aiogram.types.BotCommand(command="add_buttons", description="Добавить кнопки к расписанию"),
-        aiogram.types.BotCommand(command="info", description="Информация о боте"),
+        aiogram.types.BotCommand(command="/add_buttons", description="Добавить кнопки к расписанию"),
+        aiogram.types.BotCommand(command="/info", description="Информация о боте"),
     ]
 
     def __init__(self) -> None:
@@ -72,7 +72,6 @@ class AiogramClient(aiogram.Dispatcher):
         await self._bot.set_my_commands(
             commands=self._COMMANDS,
             scope=aiogram.types.BotCommandScopeDefault(),
-            language_code="ru",
         )
 
         self._logger.info(f"{self.name} started!")
@@ -108,6 +107,7 @@ class AiogramClient(aiogram.Dispatcher):
             markup_builder.row(self._buttons.view_parity)
             markup_builder.row(self._buttons.report_error)
 
+            # noinspection PyTypeHints
             await self._bot.send_photo(
                 chat_id=message.chat.id,
                 message_thread_id=self._get_message_thread_id(message),

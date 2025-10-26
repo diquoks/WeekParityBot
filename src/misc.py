@@ -7,24 +7,31 @@ class ButtonsContainer:
     def __init__(self) -> None:
         self._config = data.ConfigProvider()
 
-        # region /add_buttons
+    # region /add_buttons
 
-        self.view_parity = aiogram.types.InlineKeyboardButton(
+    @property
+    def view_parity(self) -> aiogram.types.InlineKeyboardButton:
+        return aiogram.types.InlineKeyboardButton(
             text="Узнать цвет недели",
             callback_data="view_parity",
         )
-        self.report_error = aiogram.types.InlineKeyboardButton(
+
+    @property
+    def report_error(self) -> aiogram.types.InlineKeyboardButton:
+        return aiogram.types.InlineKeyboardButton(
             text="Сообщить об ошибке",
             url=self._config.settings.report_link,
         )
 
-        # endregion
+    # endregion
 
-        # region /info
+    # region /info
 
-        self.export_logs = aiogram.types.InlineKeyboardButton(
+    @property
+    def export_logs(self) -> aiogram.types.InlineKeyboardButton:
+        return aiogram.types.InlineKeyboardButton(
             text="Экспортировать логи",
             callback_data="export_logs",
         )
 
-        # endregion
+    # endregion

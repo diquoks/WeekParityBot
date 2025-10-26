@@ -11,6 +11,7 @@ class AiogramClient(aiogram.Dispatcher):
     ]
 
     def __init__(self) -> None:
+        self._user = None
         self._config = data.ConfigProvider()
         self._logger = data.LoggerService(
             name=__name__,
@@ -18,7 +19,6 @@ class AiogramClient(aiogram.Dispatcher):
             level=logging.INFO,
         )
         self._buttons = misc.ButtonsContainer()
-        self._user = None
         self._bot = aiogram.Bot(
             token=self._config.settings.bot_token,
             default=aiogram.client.default.DefaultBotProperties(
@@ -27,12 +27,31 @@ class AiogramClient(aiogram.Dispatcher):
         )
         super().__init__(name="WeekParityDispatcher")
 
-        self.errors.register(self.error_handler)
-        self.startup.register(self.startup_handler)
-        self.shutdown.register(self.shutdown_handler)
-        self.message.register(self.info_handler, aiogram.filters.Command("start", "info"))
-        self.message.register(self.add_buttons_handler, aiogram.filters.Command("add_buttons"))
-        self.callback_query.register(self.callback_handler)
+        self.errors.register(
+            self.error_handler,
+        )
+        self.startup.register(
+            self.startup_handler,
+        )
+        self.shutdown.register(
+            self.shutdown_handler,
+        )
+        self.message.register(
+            self.add_buttons_handler,
+            aiogram.filters.Command(
+                "add_buttons",
+            ),
+        )
+        self.message.register(
+            self.info_handler,
+            aiogram.filters.Command(
+                "start",
+                "info",
+            ),
+        )
+        self.callback_query.register(
+            self.callback_handler,
+        )
 
         self._time_started = datetime.datetime.now(tz=datetime.timezone.utc)
         self._logger.info(f"{self.name} initialized!")
@@ -79,26 +98,6 @@ class AiogramClient(aiogram.Dispatcher):
     async def shutdown_handler(self) -> None:
         self._logger.info(f"{self.name} terminated")
 
-    async def info_handler(self, message: aiogram.types.Message, command: aiogram.filters.CommandObject) -> None:
-        self._logger.log_user_interaction(message.from_user, command.text)
-
-        markup_builder = aiogram.utils.keyboard.InlineKeyboardBuilder()
-        markup_builder.row(self._buttons.export_logs)
-
-        await self._bot.send_message(
-            chat_id=message.chat.id,
-            message_thread_id=self._get_message_thread_id(message),
-            text=(
-                f"Информация о {(await self.user).full_name}:\n"
-                f"\n"
-                f"Запущен: {self._time_started.strftime("%d.%m.%y %H:%M:%S")} UTC\n"
-                f"\n"
-                f"Исходный код на GitHub:\n"
-                f"https://github.com/diquoks/WeekParityBot\n"
-            ),
-            reply_markup=markup_builder.as_markup(),
-        )
-
     async def add_buttons_handler(self, message: aiogram.types.Message, command: aiogram.filters.CommandObject) -> None:
         self._logger.log_user_interaction(message.from_user, command.text)
 
@@ -124,6 +123,26 @@ class AiogramClient(aiogram.Dispatcher):
                     "чтобы добавить ему кнопки!\n"
                 ),
             )
+
+    async def info_handler(self, message: aiogram.types.Message, command: aiogram.filters.CommandObject) -> None:
+        self._logger.log_user_interaction(message.from_user, command.text)
+
+        markup_builder = aiogram.utils.keyboard.InlineKeyboardBuilder()
+        markup_builder.row(self._buttons.export_logs)
+
+        await self._bot.send_message(
+            chat_id=message.chat.id,
+            message_thread_id=self._get_message_thread_id(message),
+            text=(
+                f"Информация о {(await self.user).full_name}:\n"
+                f"\n"
+                f"Запущен: {self._time_started.strftime("%d.%m.%y %H:%M:%S")} UTC\n"
+                f"\n"
+                f"Исходный код на GitHub:\n"
+                f"https://github.com/diquoks/WeekParityBot\n"
+            ),
+            reply_markup=markup_builder.as_markup(),
+        )
 
     async def callback_handler(self, call: aiogram.types.CallbackQuery) -> None:
         self._logger.log_user_interaction(call.from_user, call.data)

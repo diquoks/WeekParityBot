@@ -2,6 +2,12 @@ from __future__ import annotations
 import datetime
 
 
+def get_formatted_date(date: datetime.datetime) -> str:
+    return date.strftime(
+        format="%d.%m.%y %H:%M:%S",
+    )
+
+
 def get_week_parity(date: datetime.datetime) -> str:
     current_week_number = date.isocalendar().week
 

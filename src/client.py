@@ -12,9 +12,10 @@ class AiogramClient(aiogram.Dispatcher):
 
     def __init__(self) -> None:
         self._user = None
-        self._config = data.ConfigProvider()
+        self._config = data.ConfigManager()
+        self._strings = data.StringsProvider()
         self._logger = data.LoggerService(
-            name=__name__,
+            filename=__name__,
             file_handling=self._config.settings.file_logging,
             level=logging.INFO,
         )
@@ -77,15 +78,19 @@ class AiogramClient(aiogram.Dispatcher):
         try:
             await self._bot.delete_webhook(drop_pending_updates=self._config.settings.skip_updates)
             await self.start_polling(self._bot)
-        except Exception as e:
-            self._logger.log_exception(e)
+        except Exception as exception:
+            self._logger.log_error(
+                exception=exception,
+            )
 
     # endregion
 
     # region Handlers
 
     async def error_handler(self, event: aiogram.types.ErrorEvent) -> None:
-        self._logger.log_exception(event.exception)
+        self._logger.log_error(
+            exception=event.exception,
+        )
 
     async def startup_handler(self) -> None:
         await self._bot.set_my_commands(
@@ -106,7 +111,6 @@ class AiogramClient(aiogram.Dispatcher):
             markup_builder.row(self._buttons.view_parity)
             markup_builder.row(self._buttons.report_error)
 
-            # noinspection PyTypeHints
             await self._bot.send_photo(
                 chat_id=message.chat.id,
                 message_thread_id=self._get_message_thread_id(message),
@@ -118,10 +122,7 @@ class AiogramClient(aiogram.Dispatcher):
             await self._bot.send_message(
                 chat_id=message.chat.id,
                 message_thread_id=self._get_message_thread_id(message),
-                text=(
-                    "Ответьте на сообщение с фото,\n"
-                    "чтобы добавить ему кнопки!\n"
-                ),
+                text=self._strings.menu.add_buttons,
             )
 
     async def info_handler(self, message: aiogram.types.Message, command: aiogram.filters.CommandObject) -> None:
@@ -133,13 +134,9 @@ class AiogramClient(aiogram.Dispatcher):
         await self._bot.send_message(
             chat_id=message.chat.id,
             message_thread_id=self._get_message_thread_id(message),
-            text=(
-                f"Информация о {(await self.user).full_name}:\n"
-                f"\n"
-                f"Запущен: {self._time_started.strftime("%d.%m.%y %H:%M:%S")} UTC\n"
-                f"\n"
-                f"Исходный код на GitHub:\n"
-                f"https://github.com/diquoks/WeekParityBot\n"
+            text=self._strings.menu.info(
+                bot_full_name=(await self.user).full_name,
+                time_started=self._time_started,
             ),
             reply_markup=markup_builder.as_markup(),
         )
@@ -159,7 +156,7 @@ class AiogramClient(aiogram.Dispatcher):
                     )
                 case "export_logs":
                     if self._config.settings.file_logging:
-                        logs_file = self._logger.get_logs_file()
+                        logs_file = self._logger.file
 
                         await self._bot.send_document(
                             chat_id=call.message.chat.id,
@@ -174,18 +171,20 @@ class AiogramClient(aiogram.Dispatcher):
                     else:
                         await self._bot.answer_callback_query(
                             callback_query_id=call.id,
-                            text="Логирование отключено!",
+                            text=self._strings.alert.export_logs_unavailable,
                             show_alert=True,
                         )
                 case _:
                     await self._bot.answer_callback_query(
                         callback_query_id=call.id,
-                        text="Эта кнопка недоступна!",
+                        text=self._strings.alert.button_unavailable,
                         show_alert=True,
                     )
-        except Exception as e:
-            if e is not aiogram.exceptions.TelegramBadRequest:
-                self._logger.log_exception(e)
+        except Exception as exception:
+            if exception is not aiogram.exceptions.TelegramBadRequest:
+                self._logger.log_error(
+                    exception=exception,
+                )
         finally:
             await self._bot.answer_callback_query(callback_query_id=call.id)
 

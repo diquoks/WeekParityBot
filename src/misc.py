@@ -5,7 +5,7 @@ import data
 
 class ButtonsContainer:
     def __init__(self) -> None:
-        self._config = data.ConfigProvider()
+        self._config = data.ConfigManager()
 
     # region /add_buttons
 

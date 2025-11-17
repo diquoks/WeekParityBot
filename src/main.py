@@ -1,9 +1,9 @@
 import asyncio
-import client
+import dispatcher
 
 
 async def main() -> None:
-    bot = client.AiogramClient()
+    bot = dispatcher.AiogramDispatcher()
     await bot.polling_coroutine()
 
 

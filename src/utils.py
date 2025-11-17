@@ -1,14 +1,18 @@
 from __future__ import annotations
 import datetime
+import aiogram
 
 
-def get_formatted_date(date: datetime.datetime) -> str:
-    return date.strftime(
-        format="%d.%m.%y %H:%M:%S",
-    )
+def get_message_thread_id(message: aiogram.types.Message) -> int | None:
+    if message.reply_to_message and message.reply_to_message.is_topic_message:
+        return message.reply_to_message.message_thread_id
+    elif message.is_topic_message:
+        return message.message_thread_id
+    else:
+        return None
 
 
-def get_week_parity(date: datetime.datetime) -> str:
+def get_week_number(date: datetime.datetime) -> int:
     current_week_number = date.isocalendar().week
 
     first_school_week_number = datetime.datetime(
@@ -31,17 +35,7 @@ def get_week_parity(date: datetime.datetime) -> str:
         day=28,
     ).isocalendar().week
 
-    school_week_number = {
-        True: current_week_number - first_school_week_number + 1,
-        False: last_year_week_number - first_school_week_number + current_week_number + 1,
-    }.get(first_school_week_number <= current_week_number)
-
-    return (
-        "Сейчас {0} неделя\n"
-        "({1} неделя, {2})\n"
-    ).format(
-        *{
-            True: ("зелёная", school_week_number, "чётная"),
-            False: ("жёлтая", school_week_number, "нечётная"),
-        }.get(school_week_number % 2 == 0)
-    )
+    if first_school_week_number <= current_week_number:
+        return current_week_number - first_school_week_number + 1
+    else:
+        return last_year_week_number - first_school_week_number + current_week_number + 1

@@ -1,6 +1,6 @@
 from __future__ import annotations
 import logging
-import aiogram, aiogram.client.default
+import aiogram, aiogram.exceptions, aiogram.client.default
 import routers, data
 
 
@@ -16,7 +16,14 @@ class AiogramDispatcher(aiogram.Dispatcher):
         ),
     ]
 
+    _IGNORED_EXCEPTIONS = [
+        aiogram.exceptions.TelegramForbiddenError,
+        aiogram.exceptions.TelegramRetryAfter,
+    ]
+
     def __init__(self) -> None:
+        self._strings = data.StringsProvider()
+        self._keyboards = data.KeyboardProvider()
         self._config = data.ConfigManager()
         self._logger = data.LoggerService(
             filename=__name__,
@@ -74,9 +81,10 @@ class AiogramDispatcher(aiogram.Dispatcher):
     # region Handlers
 
     async def error_handler(self, event: aiogram.types.ErrorEvent) -> None:
-        self._logger.log_error(
-            exception=event.exception,
-        )
+        if type(event.exception) not in self._IGNORED_EXCEPTIONS:
+            self._logger.log_error(
+                exception=event.exception,
+            )
 
     async def startup_handler(self) -> None:
         await self._bot.set_my_commands(

@@ -67,7 +67,7 @@ class CommandsRouter(aiogram.Router):
             message_thread_id=utils.get_message_thread_id(message),
             text=dispatcher._strings.menu.info(
                 bot_full_name=(await dispatcher._bot.me()).full_name,
-                time_started=pyquoks.utils.get_started_datetime().astimezone(
+                time_started=pyquoks.utils.get_process_created_datetime().astimezone(
                     tz=datetime.UTC,
                 ),
             ),

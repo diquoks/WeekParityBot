@@ -1,6 +1,6 @@
-from . import callbacks, commands
-
 __all__ = [
     "callbacks",
     "commands",
 ]
+
+from . import callbacks, commands

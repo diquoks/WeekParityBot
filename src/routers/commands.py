@@ -1,7 +1,14 @@
 from __future__ import annotations
+
 import datetime
-import aiogram, aiogram.filters, pyquoks
-import dispatcher as dp, data, utils
+
+import aiogram
+import aiogram.filters
+import pyquoks
+
+import data
+import dispatcher as dp
+import utils
 
 
 class CommandsRouter(aiogram.Router):

@@ -1,7 +1,13 @@
 from __future__ import annotations
+
 import logging
-import aiogram, aiogram.exceptions, aiogram.client.default
-import routers, data
+
+import aiogram
+import aiogram.client.default
+import aiogram.exceptions
+
+import data
+import routers
 
 
 class AiogramDispatcher(aiogram.Dispatcher):

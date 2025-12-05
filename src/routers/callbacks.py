@@ -1,7 +1,14 @@
 from __future__ import annotations
+
 import datetime
-import aiogram, aiogram.exceptions, aiogram.filters
-import dispatcher as dp, data, utils
+
+import aiogram
+import aiogram.exceptions
+import aiogram.filters
+
+import data
+import dispatcher as dp
+import utils
 
 
 class CallbacksRouter(aiogram.Router):

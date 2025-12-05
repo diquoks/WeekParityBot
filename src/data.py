@@ -1,6 +1,11 @@
 from __future__ import annotations
+
 import datetime
-import aiogram, aiogram.utils.keyboard, pyquoks
+
+import aiogram
+import aiogram.utils.keyboard
+import pyquoks
+
 import utils
 
 

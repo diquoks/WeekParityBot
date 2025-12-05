@@ -1,7 +1,14 @@
 from __future__ import annotations
+
 import datetime
-import aiogram, aiogram.filters, pyquoks
-import dispatcher as dp, data, utils
+
+import aiogram
+import aiogram.filters
+import pyquoks
+
+import data
+import dispatcher as dp
+import utils
 
 
 class CommandsRouter(aiogram.Router):
@@ -67,7 +74,7 @@ class CommandsRouter(aiogram.Router):
             message_thread_id=utils.get_message_thread_id(message),
             text=dispatcher._strings.menu.info(
                 bot_full_name=(await dispatcher._bot.me()).full_name,
-                time_started=pyquoks.utils.get_started_datetime().astimezone(
+                time_started=pyquoks.utils.get_process_created_datetime().astimezone(
                     tz=datetime.UTC,
                 ),
             ),
